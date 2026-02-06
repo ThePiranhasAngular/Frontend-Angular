@@ -3,15 +3,15 @@ import { CommonModule } from '@angular/common';
 import { OrderStatus, ORDER_STATUS_CONFIG } from '../../../core/models';
 
 @Component({
-    selector: 'app-status-badge',
-    standalone: true,
-    imports: [CommonModule],
-    template: `
-    <span class="badge" [ngClass]="config.class">
-      {{ config.label }}
+  selector: 'app-status-badge',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <span class="badge" [ngClass]="config?.class || 'badge-gray'">
+      {{ config?.label || status || 'Unknown' }}
     </span>
   `,
-    styles: [`
+  styles: [`
     .badge {
       display: inline-flex;
       align-items: center;
@@ -23,9 +23,9 @@ import { OrderStatus, ORDER_STATUS_CONFIG } from '../../../core/models';
   `]
 })
 export class StatusBadgeComponent {
-    @Input({ required: true }) status!: OrderStatus;
+  @Input({ required: true }) status!: OrderStatus;
 
-    get config() {
-        return ORDER_STATUS_CONFIG[this.status];
-    }
+  get config() {
+    return ORDER_STATUS_CONFIG[this.status];
+  }
 }

@@ -10,6 +10,7 @@ import { RegisterComponent } from './auth/register/register.component';
 // User
 import { MenuComponent } from './user/menu/menu.component';
 import { MyOrdersComponent } from './user/my-orders/my-orders.component';
+import { OrderDetailComponent } from './user/order-detail/order-detail.component';
 
 // Admin
 import { AdminDashboardComponent } from './admin/dashboard/dashboard.component';
@@ -44,6 +45,11 @@ export const routes: Routes = [
     {
         path: 'orders',
         component: MyOrdersComponent,
+        canActivate: [authGuard]
+    },
+    {
+        path: 'orders/:id',
+        component: OrderDetailComponent,
         canActivate: [authGuard]
     },
     {

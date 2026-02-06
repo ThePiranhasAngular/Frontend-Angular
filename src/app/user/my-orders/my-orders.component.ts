@@ -79,22 +79,21 @@ import { Order } from '../../core/models';
                     
                     <div class="order-info">
                       <h3>#{{ order.id.replace('ORD-', '') }}</h3> <!-- Simpler ID display -->
-                      <span class="order-date">{{ order.createdAt | date:'MMM d, yyyy' }} • {{ order.items.length }} {{ order.items.length === 1 ? 'Item' : 'Items' }}</span>
+                      <span class="order-date">{{ order.createdAt | date:'MMM d, yyyy' }} • {{ order.items?.length || 0 }} {{ (order.items?.length === 1) ? 'Item' : 'Items' }}</span>
                     </div>
 
                     <div class="order-meta">
                          <div class="order-price">
                            \${{ order.total.toFixed(2) }}
                          </div>
-                         <span class="status-pill" [ngClass]="order.status.toLowerCase()">
+                         <span class="status-pill" [ngClass]="order.status?.toLowerCase()">
                            {{ order.status | titlecase }}
                          </span>
                     </div>
 
                     <!-- Only show actions for first item or specific logic if needed, for now all have actions but hidden/shown on hover or layout -->
                     <div class="order-actions-overlay">
-                        <button class="btn-text">View Receipt</button>
-                        <button class="btn-reorder">Reorder</button>
+                        <a [routerLink]="['/orders', order.id]" class="btn-text">View Details</a>
                     </div>
                   </div>
                 }
@@ -545,8 +544,8 @@ export class MyOrdersComponent implements OnInit {
 
   loadOrders(): void {
     this.isLoading.set(true);
-    this.orderService.getMyOrders().subscribe({
-      next: (orders) => {
+    this.orderService.getOrders().subscribe({
+      next: (orders: Order[]) => {
         this.orders.set(orders);
         this.isLoading.set(false);
       },

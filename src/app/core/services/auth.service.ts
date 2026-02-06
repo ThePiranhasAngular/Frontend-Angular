@@ -1,15 +1,16 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { Observable, tap, of, delay } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { jwtDecode } from 'jwt-decode';
 import { User, AuthResponse, LoginRequest, RegisterRequest } from '../models';
+import { API_BASE_URL } from '../config/api.config';
 
 interface JwtPayload {
     sub: string;
     email: string;
     role: 'USER' | 'ADMIN';
-    name: string;
+    name?: string;
     exp: number;
 }
 
@@ -17,7 +18,7 @@ interface JwtPayload {
     providedIn: 'root'
 })
 export class AuthService {
-    private readonly API_URL = '/api/auth';
+    private readonly API_URL = `${API_BASE_URL}/auth`;
     private readonly TOKEN_KEY = 'restor_app_token';
 
     private currentUserSignal = signal<User | null>(null);
@@ -34,23 +35,13 @@ export class AuthService {
     }
 
     login(credentials: LoginRequest): Observable<AuthResponse> {
-        // DEMO MODE: Simular login sin backend
-        return this.mockLogin(credentials);
-
-        // PRODUCCIÓN: Descomentar para usar con backend real
-        // return this.http.post<AuthResponse>(`${this.API_URL}/login`, credentials).pipe(
-        //   tap(response => this.handleAuthResponse(response))
-        // );
+        return this.http.post<AuthResponse>(`${this.API_URL}/login`, credentials).pipe(
+            tap((response: AuthResponse) => this.handleAuthResponse(response))
+        );
     }
 
-    register(data: RegisterRequest): Observable<AuthResponse> {
-        // DEMO MODE: Simular registro
-        return this.mockRegister(data);
-
-        // PRODUCCIÓN: Descomentar para usar con backend real
-        // return this.http.post<AuthResponse>(`${this.API_URL}/register`, data).pipe(
-        //   tap(response => this.handleAuthResponse(response))
-        // );
+    register(data: RegisterRequest): Observable<{ message: string }> {
+        return this.http.post<{ message: string }>(`${this.API_URL}/register`, data);
     }
 
     logout(): void {
@@ -81,7 +72,7 @@ export class AuthService {
 
     private handleAuthResponse(response: AuthResponse): void {
         sessionStorage.setItem(this.TOKEN_KEY, response.token);
-        this.currentUserSignal.set(response.user);
+        this.loadUserFromToken();
     }
 
     private loadUserFromToken(): void {
@@ -96,113 +87,11 @@ export class AuthService {
             this.currentUserSignal.set({
                 id: decoded.sub,
                 email: decoded.email,
-                name: decoded.name,
+                name: decoded.name || decoded.email,
                 role: decoded.role
             });
         } catch {
             this.currentUserSignal.set(null);
         }
-    }
-
-    // ===== MOCK METHODS (for demo without backend) =====
-
-    private mockLogin(credentials: LoginRequest): Observable<AuthResponse> {
-        // Obtener usuarios guardados en localStorage
-        const storedUsersJson = localStorage.getItem('restor_app_users');
-        const storedUsers: Record<string, { password: string; user: User }> = storedUsersJson
-            ? JSON.parse(storedUsersJson)
-            : {
-                // Usuarios demo predefinidos
-                'user@demo.com': {
-                    password: '123456',
-                    user: { id: '1', name: 'Usuario Demo', email: 'user@demo.com', role: 'USER' }
-                },
-                'admin@demo.com': {
-                    password: '123456',
-                    user: { id: '2', name: 'Admin Demo', email: 'admin@demo.com', role: 'ADMIN' }
-                }
-            };
-
-        // Guardar usuarios demo si no existían
-        if (!storedUsersJson) {
-            localStorage.setItem('restor_app_users', JSON.stringify(storedUsers));
-        }
-
-        const existingUser = storedUsers[credentials.email];
-
-        if (existingUser) {
-            if (existingUser.password === credentials.password) {
-                const token = this.generateMockToken(existingUser.user);
-                const response: AuthResponse = { token, user: existingUser.user };
-                return of(response).pipe(
-                    delay(500),
-                    tap(res => this.handleAuthResponse(res))
-                );
-            } else {
-                return new Observable(subscriber => {
-                    setTimeout(() => {
-                        subscriber.error(new Error('Contraseña incorrecta'));
-                    }, 500);
-                });
-            }
-        }
-
-        // Usuario no encontrado
-        return new Observable(subscriber => {
-            setTimeout(() => {
-                subscriber.error(new Error('Usuario no encontrado. ¿Ya te registraste?'));
-            }, 500);
-        });
-    }
-
-    private mockRegister(data: RegisterRequest): Observable<AuthResponse> {
-        // Verificar si ya existe el usuario
-        const storedUsersJson = localStorage.getItem('restor_app_users');
-        const storedUsers: Record<string, { password: string; user: User }> = storedUsersJson
-            ? JSON.parse(storedUsersJson)
-            : {};
-
-        if (storedUsers[data.email]) {
-            return new Observable(subscriber => {
-                setTimeout(() => {
-                    subscriber.error(new Error('Este correo ya está registrado'));
-                }, 500);
-            });
-        }
-
-        // Crear nuevo usuario
-        const user: User = {
-            id: Math.random().toString(36).substr(2, 9),
-            name: data.name,
-            email: data.email,
-            role: data.role || 'USER'
-        };
-
-        // Guardar en localStorage
-        storedUsers[data.email] = { password: data.password, user };
-        localStorage.setItem('restor_app_users', JSON.stringify(storedUsers));
-
-        const token = this.generateMockToken(user);
-        const response: AuthResponse = { token, user };
-
-        return of(response).pipe(
-            delay(500),
-            tap(res => this.handleAuthResponse(res))
-        );
-    }
-
-    private generateMockToken(user: User): string {
-        // Crear un token JWT mock (solo para demo, no seguro para producción)
-        const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-        const payload = btoa(JSON.stringify({
-            sub: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            exp: Math.floor(Date.now() / 1000) + 86400 // 24 horas
-        }));
-        const signature = btoa('mock-signature');
-
-        return `${header}.${payload}.${signature}`;
     }
 }

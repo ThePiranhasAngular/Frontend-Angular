@@ -5,10 +5,10 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
-    selector: 'app-register',
-    standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, RouterLink],
-    template: `
+  selector: 'app-register',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  template: `
     <div class="auth-container">
       <div class="auth-card">
         <!-- Logo -->
@@ -141,7 +141,7 @@ import { AuthService } from '../../core/services/auth.service';
       <p class="auth-copyright">RestorApp Académico Simulacro</p>
     </div>
   `,
-    styles: [`
+  styles: [`
     .auth-container {
       min-height: 100vh;
       display: flex;
@@ -227,44 +227,39 @@ import { AuthService } from '../../core/services/auth.service';
   `]
 })
 export class RegisterComponent {
-    private fb = inject(FormBuilder);
-    private authService = inject(AuthService);
-    private router = inject(Router);
+  private fb = inject(FormBuilder);
+  private authService = inject(AuthService);
+  private router = inject(Router);
 
-    registerForm: FormGroup;
-    isLoading = false;
-    errorMessage = '';
+  registerForm: FormGroup;
+  isLoading = false;
+  errorMessage = '';
 
-    constructor() {
-        this.registerForm = this.fb.group({
-            name: ['', [Validators.required]],
-            email: ['', [Validators.required, Validators.email]],
-            password: ['', [Validators.required, Validators.minLength(6)]],
-            role: ['USER']
-        });
-    }
+  constructor() {
+    this.registerForm = this.fb.group({
+      name: ['', [Validators.required]],
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      role: ['USER']
+    });
+  }
 
-    onSubmit(): void {
-        if (this.registerForm.invalid) return;
+  onSubmit(): void {
+    if (this.registerForm.invalid) return;
 
-        this.isLoading = true;
-        this.errorMessage = '';
+    this.isLoading = true;
+    this.errorMessage = '';
 
-        const formData = this.registerForm.value;
+    const formData = this.registerForm.value;
 
-        this.authService.register(formData).subscribe({
-            next: () => {
-                const role = this.authService.userRole();
-                if (role === 'ADMIN') {
-                    this.router.navigate(['/admin/dashboard']);
-                } else {
-                    this.router.navigate(['/menu']);
-                }
-            },
-            error: (err) => {
-                this.errorMessage = err.message || 'Registration failed. Please try again.';
-                this.isLoading = false;
-            }
-        });
-    }
+    this.authService.register(formData).subscribe({
+      next: () => {
+        this.router.navigate(['/auth/login'], { queryParams: { registered: 'true' } });
+      },
+      error: (err) => {
+        this.errorMessage = err.message || 'Registration failed. Please try again.';
+        this.isLoading = false;
+      }
+    });
+  }
 }

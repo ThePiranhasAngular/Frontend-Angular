@@ -1,21 +1,13 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AdminNavbarComponent } from '../components/admin-navbar/admin-navbar.component';
-
-interface User {
-    id: string;
-    name: string;
-    email: string;
-    role: 'USER' | 'ADMIN';
-    status: 'active' | 'inactive';
-    lastActive: string;
-}
+import { UserService, UserManagement } from '../../core/services/user.service';
 
 @Component({
-    selector: 'app-admin-users',
-    standalone: true,
-    imports: [CommonModule, AdminNavbarComponent],
-    template: `
+  selector: 'app-admin-users',
+  standalone: true,
+  imports: [CommonModule, AdminNavbarComponent],
+  template: `
     <div class="admin-container">
       <app-admin-navbar></app-admin-navbar>
 
@@ -42,8 +34,7 @@ interface User {
               <tr>
                 <th>User</th>
                 <th>Role</th>
-                <th>Status</th>
-                <th>Last Active</th>
+                <th>Joined</th>
                 <th class="text-right">Actions</th>
               </tr>
             </thead>
@@ -66,14 +57,11 @@ interface User {
                       {{ user.role }}
                     </span>
                   </td>
-                  <td>
-                    <span class="status-badge" [class.active]="user.status === 'active'">
-                      {{ user.status }}
-                    </span>
-                  </td>
-                  <td class="text-muted">{{ user.lastActive }}</td>
+                  <td class="text-muted">{{ user.createdAt | date:'shortDate' }}</td>
                   <td class="text-right">
-                    <button class="btn-link">Edit</button>
+                    <button class="btn-link" (click)="toggleRole(user)">
+                      Change Role
+                    </button>
                   </td>
                 </tr>
               }
@@ -83,7 +71,7 @@ interface User {
       </main>
     </div>
   `,
-    styles: [`
+  styles: [`
     .admin-container {
       min-height: 100vh;
       background: #F9FAFB;
@@ -222,11 +210,24 @@ interface User {
     .text-right { text-align: right; }
   `]
 })
-export class ManageUsersComponent {
-    users = signal<User[]>([
-        { id: '1', name: 'Admin User', email: 'admin@demo.com', role: 'ADMIN', status: 'active', lastActive: '2 mins ago' },
-        { id: '2', name: 'Demo User', email: 'user@demo.com', role: 'USER', status: 'active', lastActive: '1 hour ago' },
-        { id: '3', name: 'John Doe', email: 'john@example.com', role: 'USER', status: 'inactive', lastActive: '2 days ago' },
-        { id: '4', name: 'Jane Smith', email: 'jane@example.com', role: 'USER', status: 'active', lastActive: '5 hours ago' }
-    ]);
+export class ManageUsersComponent implements OnInit {
+  private userService = inject(UserService);
+  users = signal<UserManagement[]>([]);
+
+  ngOnInit(): void {
+    this.loadUsers();
+  }
+
+  loadUsers(): void {
+    this.userService.getUsers().subscribe(users => {
+      this.users.set(users);
+    });
+  }
+
+  toggleRole(user: UserManagement): void {
+    const newRole = user.role === 'ADMIN' ? 'USER' : 'ADMIN';
+    this.userService.updateRole(user.id, newRole).subscribe(() => {
+      this.loadUsers();
+    });
+  }
 }

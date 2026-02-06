@@ -156,12 +156,11 @@ import { AdminNavbarComponent } from '../components/admin-navbar/admin-navbar.co
 
               <div class="item-list">
                 <span class="label-small section-label">Items</span>
-                @for (item of selectedOrder()!.items; track item.id) {
+                @for (item of selectedOrder()?.items || []; track item.id) {
                   <div class="order-item">
                     <div class="item-qty">{{ item.quantity }}x</div>
                     <div class="item-main">
-                      <span class="item-name">Product #{{ item.productId }}</span>
-                      <span class="item-meta">Regular size, No onions</span>
+                      <span class="item-name">{{ item.product?.name || ('Product #' + item.productId) }}</span>
                     </div>
                     <div class="item-price">\${{ (item.price * item.quantity).toFixed(2) }}</div>
                   </div>
@@ -558,8 +557,8 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   loadData(): void {
-    this.orderService.getAllOrders().subscribe({
-      next: (orders) => {
+    this.orderService.getOrders().subscribe({
+      next: (orders: Order[]) => {
         this.orders.set(orders);
         if (orders.length > 0 && !this.selectedOrder()) {
           this.selectOrder(orders[0]); // Select first by default
@@ -588,9 +587,13 @@ export class AdminDashboardComponent implements OnInit {
 
     this.isUpdating.set(true);
     this.orderService.updateOrderStatus(order.id, this.newStatus()).subscribe({
-      next: (updatedOrder) => {
+      next: () => {
         this.loadData();
-        this.selectedOrder.set(updatedOrder);
+        // El backend devuelve void, así que recargamos y actualizamos el estado local
+        const currentOrder = this.selectedOrder();
+        if (currentOrder) {
+          this.selectedOrder.set({ ...currentOrder, status: this.newStatus() });
+        }
         this.isUpdating.set(false);
       },
       error: () => {
